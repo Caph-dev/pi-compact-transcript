@@ -77,7 +77,7 @@ test("results show as one line, a line count, or running", async () => {
 	}
 });
 
-test("a tool that finishes without output no longer says running", { todo: "known bug: the running placeholder is kept" }, async () => {
+test("a tool that finishes without output no longer says running", async () => {
 	const h = harness();
 	await h.startSession();
 	await h.emit("agent_start");
