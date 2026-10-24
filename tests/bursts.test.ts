@@ -103,7 +103,7 @@ test("a failed call gets its own row and the next call starts a fresh count", as
 	}
 });
 
-test("calls before a failure in the same burst stay visible", { todo: "known bug: they are hidden and never shown again" }, async () => {
+test("calls before a failure in the same burst stay visible", async () => {
 	const h = harness();
 	await h.startSession();
 	await h.emit("agent_start");
@@ -111,9 +111,12 @@ test("calls before a failure in the same burst stay visible", { todo: "known bug
 		const a = await h.start("a", "read", { path: "a.ts" });
 		await h.finish("a");
 		const b = await h.start("b", "read", { path: "b.ts" });
-		await h.finish("b", failure);
-		assert.equal(row(a), "◆ read a.ts {ok}");
-		assert.equal(row(b), "◆ read b.ts {ENOENT}");
+		await h.finish("b");
+		const c = await h.start("c", "read", { path: "c.ts" });
+		await h.finish("c", failure);
+		assert.deepEqual(lines(a), []);
+		assert.equal(row(b), "◆ 2× read b.ts {ok}", "the calls before the failure keep their burst row");
+		assert.equal(row(c), "◆ read c.ts {ENOENT}");
 	} finally {
 		await h.emit("session_shutdown");
 	}
@@ -191,14 +194,16 @@ test("starting a new session drops burst counts from the previous one", async ()
 	}
 });
 
-test("a failure in history ends the burst like it does live", { todo: "known bug: history keeps counting through the failure" }, async () => {
+test("a failure in history ends the burst like it does live", async () => {
 	const h = harness();
 	await h.startSession("resume");
 	try {
-		const a = h.restore("a", "read", { path: "a.ts" }, failure);
-		const b = h.restore("b", "read", { path: "b.ts" });
-		assert.equal(row(a), "◆ read a.ts {ENOENT}");
-		assert.equal(row(b), "◆ read b.ts {ok}");
+		const a = h.restore("a", "read", { path: "a.ts" });
+		const b = h.restore("b", "read", { path: "b.ts" }, failure);
+		const c = h.restore("c", "read", { path: "c.ts" });
+		assert.equal(row(a), "◆ read a.ts {ok}", "the call before the failure keeps its row");
+		assert.equal(row(b), "◆ read b.ts {ENOENT}");
+		assert.equal(row(c), "◆ read c.ts {ok}", "the count restarts after the failure");
 	} finally {
 		await h.emit("session_shutdown");
 	}

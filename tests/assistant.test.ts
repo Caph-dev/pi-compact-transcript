@@ -112,7 +112,7 @@ test("a failing Markdown transformer is skipped", async () => {
 	assert.match(render(component).join("\n"), /STILL HERE/);
 });
 
-test("assistant text in history splits bursts when thinking is shown", { todo: "known bug: only the hidden-thinking path ends the burst" }, async () => {
+test("assistant text in history splits bursts when thinking is shown", async () => {
 	const h = harness();
 	await h.startSession("resume");
 	try {

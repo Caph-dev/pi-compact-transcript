@@ -390,16 +390,34 @@ function setToolHidden(info: ToolInfo, hidden: boolean) {
 	else state.hiddenToolIds.delete(info.id);
 }
 
+// A failed call ends its burst. The call before it becomes the burst's visible
+// row again, with the count and duration it had before the failure joined.
+function splitBurstAtFailure(info: ToolInfo) {
+	const index = state.currentBurst.indexOf(info);
+	if (index < 0) return;
+	const previous = state.currentBurst[index - 1];
+	state.currentBurst = [];
+	if (previous) {
+		setToolHidden(previous, false);
+		previous.invalidate?.();
+	}
+}
+
 function applyResult(info: ToolInfo, result: any, isError: boolean, isPartial: boolean) {
 	const diffStats = isEditTool(info.name) ? diffStatsFromResult(result) : undefined;
 	if (diffStats) info.diffStats = diffStats;
 	else if (isError) info.diffStats = undefined;
 	const suffix = resultPreview(result, isPartial);
 	if (suffix) info.result = suffix;
+	// A final result without text replaces the "running" placeholder.
+	else if (!isPartial) info.result = undefined;
 	if (isError) {
 		info.isError = true;
 		// A failed tool always gets its own visible row, even if a burst had
 		// hidden it; render it as itself rather than as a burst summary.
+		// Rebuilt history only learns about the failure here, so split the
+		// burst here too rather than only on the live tool_execution_end.
+		splitBurstAtFailure(info);
 		info.burstCount = 1;
 		setToolHidden(info, false);
 	}
@@ -909,6 +927,8 @@ function patchAssistantMessageComponent() {
 		}
 		if (!this.hideThinkingBlock) {
 			const result = originalUpdateContent.call(this, message, isStreaming);
+			// Assistant text ends a tool burst, as in the hidden-thinking path below.
+			if (message.content.some((c: any) => c.type === "text" && c.text?.trim())) state.currentBurst = [];
 			frameCommentary(this, message);
 			return result;
 		}
