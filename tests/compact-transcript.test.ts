@@ -162,6 +162,38 @@ test("collapsing tool output clears image sources together with image components
 	}
 });
 
+test("summaryStyle off hides activity summaries", async () => {
+	const handlers = new Map<string, Function>();
+	const renderers = new Map<string, Function>();
+	const theme = { fg: (_color: string, text: string) => text, bold: (text: string) => text } as Theme;
+	let configEntries: unknown[] = [];
+	const ctx = {
+		ui: { theme, setStatus() {}, setWorkingMessage() {} },
+		cwd: process.cwd(),
+		isProjectTrusted: () => false,
+		sessionManager: { getBranch: () => configEntries },
+	} as unknown as ExtensionContext;
+	compactTranscript({
+		on: (event: string, handler: Function) => handlers.set(event, handler),
+		registerCommand() {},
+		registerEntryRenderer: (type: string, renderer: Function) => renderers.set(type, renderer),
+	} as unknown as ExtensionAPI);
+	const startWith = async (summaryStyle: string) => {
+		configEntries = [{ type: "custom", customType: "compact-transcript-config", data: { summaryStyle } }];
+		await handlers.get("session_start")!({ reason: "reload" }, ctx);
+	};
+	const render = renderers.get("compact-transcript-summary")!;
+	const entry = { data: { reads: 2, edits: 1, commands: 0, others: 0, failed: 0, durationMs: 4000 } };
+	try {
+		await startWith("off");
+		assert.equal(render(entry, {}, theme), undefined);
+		await startWith("plain");
+		assert.ok(render(entry, {}, theme), "summaries render again when switched back on");
+	} finally {
+		await handlers.get("session_shutdown")!({}, ctx);
+	}
+});
+
 function mouseHarness() {
 	initTheme("dark", false);
 	const handlers = new Map<string, Function>();

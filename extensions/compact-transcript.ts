@@ -20,7 +20,7 @@ const SUMMARY_ENTRY_TYPE = "compact-transcript-summary";
 const BLINK_INTERVAL_MS = 400;
 const COMMENTARY_RAIL_WIDTH = 2;
 
-type SummaryStyle = "plain" | "quote";
+type SummaryStyle = "plain" | "quote" | "off";
 
 type CompactTranscriptConfig = {
 	enabled: boolean;
@@ -126,9 +126,10 @@ function normalizeConfig(input: unknown, fallback = DEFAULT_CONFIG): CompactTran
 		// Pre-0.5 config persisted a mode string instead of an enabled flag.
 		enabled = source.mode !== "disabled" && source.mode !== "off";
 	}
-	const summaryStyle = source.summaryStyle === "plain" || source.summaryStyle === "quote"
-		? source.summaryStyle
-		: fallback.summaryStyle;
+	const summaryStyle =
+		source.summaryStyle === "plain" || source.summaryStyle === "quote" || source.summaryStyle === "off"
+			? source.summaryStyle
+			: fallback.summaryStyle;
 	const highlightToolActions = typeof source.highlightToolActions === "boolean"
 		? source.highlightToolActions
 		: fallback.highlightToolActions;
@@ -1192,6 +1193,8 @@ export default function compactTranscript(pi: ExtensionAPI) {
 	registerCommand(pi);
 
 	pi.registerEntryRenderer<SummaryData>(SUMMARY_ENTRY_TYPE, (entry, _options, theme) => {
+		// Summaries are still recorded while hidden, so they reappear if switched back on.
+		if (state.config.summaryStyle === "off") return undefined;
 		const line = summaryLine(normalizeSummary(entry.data));
 		if (!line) return undefined;
 		if (state.config.summaryStyle === "quote") {
