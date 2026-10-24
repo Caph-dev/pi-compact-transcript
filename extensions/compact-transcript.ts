@@ -725,10 +725,15 @@ function patchToolExecutionComponent() {
 	const proto = ToolExecutionComponent.prototype as any;
 	if (typeof proto.updateDisplay !== "function" || typeof proto.render !== "function") return;
 	const existing = proto[TOOL_PATCH_KEY] as
-		| { originalUpdateDisplay: (...args: any[]) => any; originalRender: (...args: any[]) => any }
+		| {
+				originalUpdateDisplay: (...args: any[]) => any;
+				originalRender: (...args: any[]) => any;
+				originalHandleMouse?: (...args: any[]) => any;
+		  }
 		| undefined;
 	const originalUpdateDisplay = existing?.originalUpdateDisplay ?? proto.updateDisplay;
 	const originalRender = existing?.originalRender ?? proto.render;
+	const originalHandleMouse = existing?.originalHandleMouse ?? proto.handleMouse;
 
 	proto.updateDisplay = function patchedUpdateDisplay() {
 		if (!this.toolCallId || !this.toolName || !this.selfRenderContainer || typeof this.selfRenderContainer.clear !== "function") {
@@ -802,7 +807,21 @@ function patchToolExecutionComponent() {
 		return originalRender.call(this, width);
 	};
 
-	proto[TOOL_PATCH_KEY] = { originalUpdateDisplay, originalRender };
+	// pi 1.3+ routes mouse events to components; older versions have no handleMouse.
+	// The compact row is drawn at y = 0 without pi's native layout, so native
+	// routing would miss it. Map a left click on it to pi's per-tool toggle.
+	if (typeof originalHandleMouse === "function") {
+		proto.handleMouse = function patchedHandleMouse(event: any) {
+			if (this.hideComponent || this.__compactTranscriptHidden) return undefined;
+			if (!this.__compactTranscriptForceSelf) return originalHandleMouse.call(this, event);
+			// Only the tool row toggles; the thought ticker below it does not.
+			if (event?.y !== 0 || event.type !== "click" || event.button !== "left" || !this.result) return undefined;
+			this.setExpanded(!this.expanded);
+			return { handled: true };
+		};
+	}
+
+	proto[TOOL_PATCH_KEY] = { originalUpdateDisplay, originalRender, originalHandleMouse };
 }
 
 /** Re-apply pi's markdown transformers (mirrors createMarkdownTransform in pi core).
