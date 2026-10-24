@@ -1,0 +1,22 @@
+name: test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # pi is a peer dependency: install it for this run only, package.json stays untouched.
+      - run: npm install --no-save --no-audit --no-fund @earendil-works/pi-coding-agent @earendil-works/pi-tui
+      - run: node --experimental-strip-types --test tests/*.test.ts
