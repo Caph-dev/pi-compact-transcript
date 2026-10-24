@@ -78,7 +78,7 @@ Example:
 
 | Option | Values | Default | Description |
 | --- | --- | --- | --- |
-| `summaryStyle` | `"plain"`, `"quote"` | `"plain"` | Renders activity summaries as muted text or Markdown blockquotes. |
+| `summaryStyle` | `"plain"`, `"quote"`, `"off"` | `"plain"` | Renders activity summaries as muted text or Markdown blockquotes, or hides them. |
 | `highlightToolActions` | `true`, `false` | `false` | Bolds tool names and shell commands for easier scanning. |
 
 Configuration is resolved in this order (highest priority first): current-session `/compact-transcript on|off`, trusted project configuration, user-wide configuration, then the built-in defaults (`enabled: true`, `summaryStyle: "plain"`, `highlightToolActions: false`). Project configuration is ignored unless Pi reports the project as trusted. Missing files, invalid JSON, and unsupported values are ignored and the next fallback is used. Session toggles remain stored in the existing session entries, and legacy mode values remain supported.
