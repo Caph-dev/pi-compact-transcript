@@ -161,3 +161,52 @@ test("collapsing tool output clears image sources together with image components
 		await emit("session_shutdown");
 	}
 });
+
+test("clicking a compact tool row toggles only that tool", async () => {
+	initTheme("dark", false);
+	const handlers = new Map<string, Function>();
+	const theme = { fg: (_color: string, text: string) => text, bold: (text: string) => text } as Theme;
+	const ctx = { ui: { theme, setStatus() {}, setWorkingMessage() {} } } as unknown as ExtensionContext;
+	compactTranscript({
+		on: (event: string, handler: Function) => handlers.set(event, handler),
+		registerCommand() {},
+		registerEntryRenderer() {},
+	} as unknown as ExtensionAPI);
+	const emit = (name: string, event = {}) => handlers.get(name)!(event, ctx);
+	emit("agent_start");
+	try {
+		const tui = { requestRender() {} } as unknown as TUI;
+		// Different tools, so the rows are not merged into one burst row.
+		const make = (id: string, toolName: string, args: object) => {
+			emit("tool_execution_start", { toolCallId: id, toolName, args });
+			return new ToolExecutionComponent(toolName, id, args, {}, undefined, tui, process.cwd());
+		};
+		const clicked = make("click-a", "bash", { command: "ls" });
+		const other = make("click-b", "read", { path: "file.txt" });
+		const click = (component: ToolExecutionComponent, y: number, button = "left") =>
+			component.handleMouse({
+				type: "click", button, x: 2, y, screenX: 2, screenY: y, width: 80, height: 1,
+				shift: false, alt: false, ctrl: false,
+			} as Parameters<ToolExecutionComponent["handleMouse"]>[0]);
+		const expanded = (component: ToolExecutionComponent) => Reflect.get(component, "expanded");
+
+		assert.equal(click(clicked, 0), undefined, "a running tool without a result does not expand");
+		for (const component of [clicked, other]) {
+			component.updateResult({ content: [{ type: "text", text: "file.txt" }], isError: false });
+		}
+		assert.equal(click(clicked, 0, "right"), undefined, "right clicks are ignored");
+		assert.equal(click(clicked, 1), undefined, "rows below the tool row are ignored");
+		assert.equal(expanded(clicked), false);
+
+		assert.deepEqual(click(clicked, 0), { handled: true });
+		assert.equal(expanded(clicked), true);
+		assert.equal(expanded(other), false, "other tools stay collapsed");
+		assert.ok(clicked.render(80).length > 1, "expanded tool renders natively");
+
+		clicked.setExpanded(false);
+		assert.equal(expanded(clicked), false);
+		assert.equal(clicked.render(80).length, 1, "collapsed again to one compact row");
+	} finally {
+		await emit("session_shutdown");
+	}
+});
