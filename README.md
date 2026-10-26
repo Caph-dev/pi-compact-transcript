@@ -6,7 +6,7 @@
 
 # pi-compact-transcript 
 
-![NPM Downloads](https://img.shields.io/npm/d18m/pi-compact-transcript)
+![NPM Downloads](https://img.shields.io/npm/d18m/@caph42/pi-compact-transcript)
 
 A compact transcript extension for [pi](https://pi.dev). 
 
@@ -31,19 +31,19 @@ What it does:
 ## Install
 
 ```bash
-pi install npm:pi-compact-transcript
+pi install npm:@caph42/pi-compact-transcript
 ```
 
 Or from GitHub:
 
 ```bash
-pi install git:github.com/avhagedorn/pi-compact-transcript
+pi install git:github.com/Caph-dev/pi-compact-transcript
 ```
 
 Or try it for one run:
 
 ```bash
-pi -e git:github.com/avhagedorn/pi-compact-transcript
+pi -e git:github.com/Caph-dev/pi-compact-transcript
 ```
 
 Reload or restart pi after installing:
