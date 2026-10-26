@@ -1,7 +1,21 @@
 import assert from "node:assert/strict";
-import { homedir } from "node:os";
-import test from "node:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { join } from "node:path";
+import test, { after } from "node:test";
 import { harness, row, stripTags, tagTheme, WIDE } from "./helpers.ts";
+
+// pi reads user config from PI_CODING_AGENT_DIR; point it at a temp folder so
+// these tests never inherit the real ~/.pi/agent/compact-transcript.json, which
+// may set highlightActionColor to a literal color.
+const agentDir = mkdtempSync(join(tmpdir(), "compact-transcript-previews-"));
+const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+process.env.PI_CODING_AGENT_DIR = agentDir;
+after(() => {
+	if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+	else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
+	rmSync(agentDir, { recursive: true, force: true });
+});
 
 test("each built-in tool gets a recognizable one-line preview", async () => {
 	const h = harness();
@@ -254,5 +268,31 @@ test("highlightActionColor overrides the highlight with a theme token or a liter
 	} finally {
 		literalHarness.setBranch([]);
 		await literalHarness.emit("session_shutdown");
+	}
+});
+
+test("the highlighted action and the stats brackets share one tone", async () => {
+	const h = harness({ theme: tagTheme });
+	h.setBranch([
+		{
+			type: "custom",
+			customType: "compact-transcript-config",
+			data: { highlightToolActions: true, highlightActionColor: "accent" },
+		},
+	]);
+	await h.startSession();
+	await h.emit("agent_start");
+	try {
+		const write = await h.start("write", "write", { path: "a.ts", content: "a\n" });
+		await h.finish("write");
+		const rendered = row(write);
+		assert.match(rendered, /<accent>write<\/accent>/, "the action uses the accent");
+		assert.match(rendered, /<accent>\{<\/accent>/, "the opening bracket uses the accent");
+		assert.match(rendered, /<accent>\/<\/accent>/, "the separating slash uses the accent");
+		assert.match(rendered, /<accent>\}<\/accent>/, "the closing bracket uses the accent");
+		assert.ok(!rendered.includes("toolDiffContext"), "no second tone leaks into the row");
+	} finally {
+		h.setBranch([]);
+		await h.emit("session_shutdown");
 	}
 });

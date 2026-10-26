@@ -125,8 +125,11 @@ function isColorSpec(value: string): boolean {
 	return /^[a-zA-Z][a-zA-Z0-9]*$/.test(value);
 }
 
-/** Paints the highlighted tool action with `highlightActionColor`. */
-function paintAction(theme: Theme, text: string): string {
+/**
+ * Paints the row's accent - the tool action and the stats brackets around it -
+ * with `highlightActionColor`, so one row never shows two different tones.
+ */
+function paintAccent(theme: Theme, text: string): string {
 	const spec = state.config.highlightActionColor;
 	if (spec.startsWith("#") || /^(?:oklch|okhsl)\(/i.test(spec) || /^\d{1,3}$/.test(spec)) {
 		try {
@@ -386,13 +389,13 @@ function formatDiffStats(stats: DiffStats | undefined): string {
 
 function colorDiffStats(theme: Theme, stats: string): string {
 	const match = /^\+(\d+)\/(?:-)(\d+)$/.exec(stats);
-	if (!match) return theme.fg("toolDiffContext", `{${stats}}`);
+	if (!match) return paintAccent(theme, `{${stats}}`);
 	return (
-		theme.fg("toolDiffContext", "{") +
+		paintAccent(theme, "{") +
 		theme.fg("toolDiffAdded", `+${match[1]}`) +
-		theme.fg("toolDiffContext", "/") +
+		paintAccent(theme, "/") +
 		theme.fg("toolDiffRemoved", `-${match[2]}`) +
-		theme.fg("toolDiffContext", "}")
+		paintAccent(theme, "}")
 	);
 }
 
@@ -758,7 +761,7 @@ function compactToolLine(
 	return (
 		marker +
 		theme.fg(color, plainLine.slice(0, actionStart)) +
-		paintAction(theme, plainLine.slice(actionStart, actionEnd)) +
+		paintAccent(theme, plainLine.slice(actionStart, actionEnd)) +
 		theme.fg(color, plainLine.slice(actionEnd, beforeStatsEnd)) +
 		(statsIndex >= 0 ? colorDiffStats(theme, stats) : "") +
 		theme.fg(color, statsIndex >= 0 ? plainLine.slice(statsIndex + statsMarker.length) : "")
