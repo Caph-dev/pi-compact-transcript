@@ -194,7 +194,7 @@ test("the status marker shows running, success and failure", async () => {
 	}
 });
 
-test("highlightToolActions bolds the tool name or shell command", async () => {
+test("highlightToolActions recolors the tool name or shell command", async () => {
 	const h = harness({ theme: tagTheme });
 	h.setBranch([{ type: "custom", customType: "compact-transcript-config", data: { highlightToolActions: true } }]);
 	await h.startSession();
@@ -202,12 +202,12 @@ test("highlightToolActions bolds the tool name or shell command", async () => {
 	try {
 		const bash = await h.start("bash", "bash", { command: "npm test -- --watch" });
 		await h.finish("bash");
-		assert.match(row(bash), /<toolDiffContext><b>\$ npm<\/b><\/toolDiffContext>/);
+		assert.match(row(bash), /<toolDiffContext>\$ npm<\/toolDiffContext>/);
 
 		await h.assistantText();
 		const read = await h.start("read", "read", { path: "a.ts" });
 		await h.finish("read");
-		assert.match(row(read), /<toolDiffContext><b>read<\/b><\/toolDiffContext>/);
+		assert.match(row(read), /<toolDiffContext>read<\/toolDiffContext>/);
 		assert.equal(stripTags(row(read)), "◆ read a.ts {ok}");
 	} finally {
 		h.setBranch([]);

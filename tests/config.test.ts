@@ -44,7 +44,7 @@ async function resolvedConfig({ trusted = true, branch = [] as unknown[] } = {})
 	await h.emit("agent_start");
 	const tool = await h.start("probe", "read", { path: "a.ts" });
 	await h.finish("probe");
-	const highlightToolActions = enabled ? row(tool).includes("<b>") : undefined;
+	const highlightToolActions = enabled ? row(tool).includes("<toolDiffContext>") : undefined;
 	await h.emit("session_shutdown");
 	return { enabled, summaryStyle, highlightToolActions };
 }
