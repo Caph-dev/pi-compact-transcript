@@ -398,11 +398,15 @@ function formatDiffStats(stats: DiffStats | undefined): string {
 function colorDiffStats(theme: Theme, stats: string): string {
 	const match = /^\+(\d+)\/(?:-)(\d+)$/.exec(stats);
 	if (!match) return paintAccent(theme, `{${stats}}`);
+	// Brackets and counts share the row accent; only the + and - signs keep the
+	// diff colors, so the row stays one tone with direction still visible.
 	return (
 		paintAccent(theme, "{") +
-		theme.fg("toolDiffAdded", `+${match[1]}`) +
+		theme.fg("toolDiffAdded", "+") +
+		paintAccent(theme, match[1]) +
 		paintAccent(theme, "/") +
-		theme.fg("toolDiffRemoved", `-${match[2]}`) +
+		theme.fg("toolDiffRemoved", "-") +
+		paintAccent(theme, match[2]) +
 		paintAccent(theme, "}")
 	);
 }

@@ -168,7 +168,7 @@ test("edit and write rows show git-style line counts instead of output", async (
 	}
 });
 
-test("diff counts are colored green and red", async () => {
+test("only the diff signs are colored green and red", async () => {
 	const h = harness({ theme: tagTheme });
 	await h.startSession();
 	await h.emit("agent_start");
@@ -176,8 +176,9 @@ test("diff counts are colored green and red", async () => {
 		const write = await h.start("write", "write", { path: "a.ts", content: "a\n" });
 		await h.finish("write");
 		const rendered = row(write);
-		assert.match(rendered, /<toolDiffAdded>\+1<\/toolDiffAdded>/);
-		assert.match(rendered, /<toolDiffRemoved>-0<\/toolDiffRemoved>/);
+		assert.match(rendered, /<toolDiffAdded>\+<\/toolDiffAdded>/, "the plus sign is colored");
+		assert.match(rendered, /<toolDiffRemoved>-<\/toolDiffRemoved>/, "the minus sign is colored");
+		assert.match(rendered, /\{<\/toolDiffContext><toolDiffAdded>\+<\/toolDiffAdded><toolDiffContext>1/, "counts use the row accent");
 	} finally {
 		await h.emit("session_shutdown");
 	}
@@ -290,6 +291,7 @@ test("the highlighted action and the stats brackets share one tone", async () =>
 		assert.match(rendered, /<accent>\{<\/accent>/, "the opening bracket uses the accent");
 		assert.match(rendered, /<accent>\/<\/accent>/, "the separating slash uses the accent");
 		assert.match(rendered, /<accent>\}<\/accent>/, "the closing bracket uses the accent");
+		assert.match(rendered, /<accent>1<\/accent>/, "the counts use the accent");
 		assert.ok(!rendered.includes("toolDiffContext"), "no second tone leaks into the row");
 	} finally {
 		h.setBranch([]);
