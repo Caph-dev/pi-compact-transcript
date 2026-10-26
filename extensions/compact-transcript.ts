@@ -95,6 +95,12 @@ const DEFAULT_CONFIG: CompactTranscriptConfig = {
 	highlightToolActions: false,
 };
 
+// Fork: the upstream highlight reuses `toolTitle`, which is near-white in most
+// themes and jumps hard against the dim row text. `toolDiffContext` is a muted
+// tone in the built-in themes (in catppuccin-mocha-prompts it is #b7bfdc, a soft
+// blue-gray), so the bolded action stays scannable without shouting.
+const HIGHLIGHT_ACTION_COLOR = "toolDiffContext";
+
 const STATE_KEY = Symbol.for("pi-compact-transcript.state");
 const TOOL_PATCH_KEY = Symbol.for("pi-compact-transcript.tool-patch");
 const ASSISTANT_PATCH_KEY = Symbol.for("pi-compact-transcript.assistant-patch");
@@ -713,7 +719,7 @@ function compactToolLine(
 	return (
 		marker +
 		theme.fg(color, plainLine.slice(0, actionStart)) +
-		theme.fg("toolTitle", theme.bold(plainLine.slice(actionStart, actionEnd))) +
+		theme.fg(HIGHLIGHT_ACTION_COLOR, theme.bold(plainLine.slice(actionStart, actionEnd))) +
 		theme.fg(color, plainLine.slice(actionEnd, beforeStatsEnd)) +
 		(statsIndex >= 0 ? colorDiffStats(theme, stats) : "") +
 		theme.fg(color, statsIndex >= 0 ? plainLine.slice(statsIndex + statsMarker.length) : "")

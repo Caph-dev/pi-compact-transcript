@@ -202,12 +202,12 @@ test("highlightToolActions bolds the tool name or shell command", async () => {
 	try {
 		const bash = await h.start("bash", "bash", { command: "npm test -- --watch" });
 		await h.finish("bash");
-		assert.match(row(bash), /<toolTitle><b>\$ npm<\/b><\/toolTitle>/);
+		assert.match(row(bash), /<toolDiffContext><b>\$ npm<\/b><\/toolDiffContext>/);
 
 		await h.assistantText();
 		const read = await h.start("read", "read", { path: "a.ts" });
 		await h.finish("read");
-		assert.match(row(read), /<toolTitle><b>read<\/b><\/toolTitle>/);
+		assert.match(row(read), /<toolDiffContext><b>read<\/b><\/toolDiffContext>/);
 		assert.equal(stripTags(row(read)), "◆ read a.ts {ok}");
 	} finally {
 		h.setBranch([]);
