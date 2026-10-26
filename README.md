@@ -96,7 +96,7 @@ Configuration is resolved in this order (highest priority first): current-sessio
 ```text
 /compact-transcript          # toggle on/off
 /compact-transcript on|off   # set explicitly
-/compact-transcript status   # show current state
+/compact-transcript status   # show on/off and the active highlight color
 ```
 
 Toggling re-renders the visible transcript immediately — no reload needed. Write stats are always shown for completed writes. Pre-0.5 mode names (`balanced`, `aggressive`, `debug`, `disabled`) are accepted as legacy aliases for `on`/`off`.

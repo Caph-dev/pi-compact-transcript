@@ -38,7 +38,7 @@ async function resolvedConfig({ trusted = true, branch = [] as unknown[] } = {})
 	h.setBranch(branch);
 	await h.startSession();
 	await h.command("status");
-	const enabled = h.notifications.at(-1)?.message === "Compact transcript: on";
+	const enabled = h.notifications.at(-1)?.message.startsWith("Compact transcript: on") === true;
 	const summary = h.renderSummary({ reads: 2 });
 	const summaryStyle = summary === undefined ? "off" : summary instanceof Markdown ? "quote" : summary instanceof Text ? "plain" : "?";
 	await h.emit("agent_start");
@@ -110,7 +110,11 @@ test("/compact-transcript toggles, sets and reports the state", async () => {
 		assert.deepEqual(last(), { message: "Compact transcript: on", level: "info" });
 		await h.command("OFF");
 		await h.command("status");
-		assert.deepEqual(last(), { message: "Compact transcript: off", level: "info" }, "status reports without changing");
+		assert.deepEqual(
+			last(),
+			{ message: "Compact transcript: off · highlight: off", level: "info" },
+			"status reports without changing",
+		);
 		await h.command("balanced");
 		assert.deepEqual(last(), { message: "Compact transcript: on", level: "info" }, "legacy mode names turn it on");
 		await h.command("loud");
@@ -168,6 +172,35 @@ test("highlightActionColor accepts a theme token or a literal and ignores garbag
 		(await highlight("not a color!")).line,
 		/<toolDiffContext>read<\/toolDiffContext>/,
 		"an unsupported value falls back to the default",
+	);
+	writeConfigs({});
+});
+
+test("status reports the active highlight color", async () => {
+	const status = async (user: unknown) => {
+		writeConfigs({ user });
+		const h = harness({ trusted: true, cwd: projectDir });
+		await h.startSession();
+		await h.command("status");
+		const message = h.notifications.at(-1)?.message;
+		await h.emit("session_shutdown");
+		return message;
+	};
+
+	assert.equal(
+		await status({ highlightToolActions: true, highlightActionColor: "#7f8aa8" }),
+		"Compact transcript: on · highlight: #7f8aa8 (literal)",
+		"a literal is reported as such",
+	);
+	assert.equal(
+		await status({ highlightToolActions: true, highlightActionColor: "accent" }),
+		"Compact transcript: on · highlight: accent (theme token)",
+		"a theme token is reported as such",
+	);
+	assert.equal(
+		await status({ highlightToolActions: false }),
+		"Compact transcript: on · highlight: off",
+		"a disabled highlight says so instead of naming an unused color",
 	);
 	writeConfigs({});
 });

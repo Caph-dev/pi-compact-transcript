@@ -125,6 +125,14 @@ function isColorSpec(value: string): boolean {
 	return /^[a-zA-Z][a-zA-Z0-9]*$/.test(value);
 }
 
+/** Reports the accent the way it will be interpreted, so status is checkable. */
+function describeHighlightColor(): string {
+	if (!state.config.highlightToolActions) return "off";
+	const spec = state.config.highlightActionColor;
+	const literal = spec.startsWith("#") || /^(?:oklch|okhsl)\(/i.test(spec) || /^\d{1,3}$/.test(spec);
+	return `${spec} (${literal ? "literal" : "theme token"})`;
+}
+
 /**
  * Paints the row's accent - the tool action and the stats brackets around it -
  * with `highlightActionColor`, so one row never shows two different tones.
@@ -1237,7 +1245,10 @@ function registerCommand(pi: ExtensionAPI) {
 			captureTheme(ctx);
 			const trimmed = args.trim().toLowerCase();
 			if (trimmed === "status") {
-				ctx.ui.notify(`Compact transcript: ${isEnabled() ? "on" : "off"}`, "info");
+				ctx.ui.notify(
+					`Compact transcript: ${isEnabled() ? "on" : "off"} · highlight: ${describeHighlightColor()}`,
+					"info",
+				);
 				return;
 			}
 			if (!trimmed) {
