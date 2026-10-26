@@ -1,7 +1,8 @@
 > **Personal fork.** This is `Caph-dev/pi-compact-transcript`, forked from
 > [avhagedorn/pi-compact-transcript](https://github.com/avhagedorn/pi-compact-transcript) 0.12.0.
 > The only functional change is the `highlightToolActions` styling described below:
-> `toolDiffContext` instead of `toolTitle`, and no bold. Upstream fixes must be merged manually.
+> `toolDiffContext` instead of `toolTitle`, no bold, and a new `highlightActionColor`
+> option. Upstream fixes must be merged manually.
 
 # pi-compact-transcript 
 
@@ -77,16 +78,18 @@ Example:
 {
   "enabled": true,
   "summaryStyle": "quote",
-  "highlightToolActions": true
+  "highlightToolActions": true,
+  "highlightActionColor": "#7f8aa8"
 }
 ```
 
 | Option | Values | Default | Description |
 | --- | --- | --- | --- |
 | `summaryStyle` | `"plain"`, `"quote"`, `"off"` | `"plain"` | Renders activity summaries as muted text or Markdown blockquotes, or hides them. |
-| `highlightToolActions` | `true`, `false` | `false` | Bolds tool names and shell commands for easier scanning. The action is recolored with `toolDiffContext` (a muted tone) rather than the near-white `toolTitle`, and it is not bold, so the row keeps a single type weight. |
+| `highlightToolActions` | `true`, `false` | `false` | Recolors tool names and shell commands so they stand out from the rest of the row. No bold: the row keeps a single type weight. |
+| `highlightActionColor` | theme token name, `#hex`, `oklch(...)`, `okhsl(...)`, palette index | `"toolDiffContext"` | Color used by `highlightToolActions`. Token names follow the active theme; literals are emitted as ANSI colors and stay fixed when the theme changes. Unsupported values keep the default. |
 
-Configuration is resolved in this order (highest priority first): current-session `/compact-transcript on|off`, trusted project configuration, user-wide configuration, then the built-in defaults (`enabled: true`, `summaryStyle: "plain"`, `highlightToolActions: false`). Project configuration is ignored unless Pi reports the project as trusted. Missing files, invalid JSON, and unsupported values are ignored and the next fallback is used. Session toggles remain stored in the existing session entries, and legacy mode values remain supported.
+Configuration is resolved in this order (highest priority first): current-session `/compact-transcript on|off`, trusted project configuration, user-wide configuration, then the built-in defaults (`enabled: true`, `summaryStyle: "plain"`, `highlightToolActions: false`, `highlightActionColor: "toolDiffContext"`). Project configuration is ignored unless Pi reports the project as trusted. Missing files, invalid JSON, and unsupported values are ignored and the next fallback is used. Session toggles remain stored in the existing session entries, and legacy mode values remain supported.
 
 ## Commands
 

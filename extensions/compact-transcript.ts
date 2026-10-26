@@ -6,7 +6,7 @@ import {
 	getMarkdownTheme,
 	ToolExecutionComponent,
 } from "@earendil-works/pi-coding-agent";
-import { type Component, Markdown, Spacer, Text, truncateToWidth } from "@earendil-works/pi-tui";
+import { type Component, foregroundAnsi, getTerminalColorMode, Markdown, parseColor, Spacer, Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -26,6 +26,7 @@ type CompactTranscriptConfig = {
 	enabled: boolean;
 	summaryStyle: SummaryStyle;
 	highlightToolActions: boolean;
+	highlightActionColor: string;
 };
 
 type ToolInfo = {
@@ -89,18 +90,20 @@ type RuntimeState = {
 	thoughtAnchorId?: string;
 };
 
+// Fork: upstream reuses `toolTitle` for the highlighted action, which is
+// near-white in most themes and jumps hard against the dim row text. This fork
+// defaults to `toolDiffContext` - a muted tone (soft blue-gray, #b7bfdc in
+// catppuccin-mocha-prompts) that is already used for the diff stats in the same
+// row - and drops bold, so the row keeps one type weight. Override it per
+// config with `highlightActionColor`: a theme token name or a #hex literal.
+const HIGHLIGHT_ACTION_COLOR = "toolDiffContext";
+
 const DEFAULT_CONFIG: CompactTranscriptConfig = {
 	enabled: true,
 	summaryStyle: "plain",
 	highlightToolActions: false,
+	highlightActionColor: HIGHLIGHT_ACTION_COLOR,
 };
-
-// Fork: upstream reuses `toolTitle` for the highlighted action, which is
-// near-white in most themes and jumps hard against the dim row text. This fork
-// colors it with `toolDiffContext` instead - a muted tone (soft blue-gray,
-// #b7bfdc in catppuccin-mocha-prompts) that is already used for the diff stats
-// in the same row - and drops bold so the row keeps one type weight.
-const HIGHLIGHT_ACTION_COLOR = "toolDiffContext";
 
 const STATE_KEY = Symbol.for("pi-compact-transcript.state");
 const TOOL_PATCH_KEY = Symbol.for("pi-compact-transcript.tool-patch");
@@ -111,6 +114,34 @@ const NAG_DISMISSED_KEY = "settingsNagDismissed";
 
 // Only show the startup settings tip once per pi process lifetime.
 let startupSettingsNagShown = false;
+
+// A theme token name (`toolDiffContext`), a #hex / oklch() / okhsl() literal, or
+// an ANSI palette index. Token names come first so themes stay portable.
+function isColorSpec(value: string): boolean {
+	if (!value) return false;
+	if (/^#[0-9a-f]{3,8}$/i.test(value)) return true;
+	if (/^(?:oklch|okhsl)\(/i.test(value)) return true;
+	if (/^\d{1,3}$/.test(value)) return true;
+	return /^[a-zA-Z][a-zA-Z0-9]*$/.test(value);
+}
+
+/** Paints the highlighted tool action with `highlightActionColor`. */
+function paintAction(theme: Theme, text: string): string {
+	const spec = state.config.highlightActionColor;
+	if (spec.startsWith("#") || /^(?:oklch|okhsl)\(/i.test(spec) || /^\d{1,3}$/.test(spec)) {
+		try {
+			return `${foregroundAnsi(parseColor(spec), getTerminalColorMode())}${text}\x1b[39m`;
+		} catch {
+			// Invalid literal: fall through to the token path below.
+		}
+	}
+	try {
+		return theme.fg(spec, text);
+	} catch {
+		// Unknown token for the active theme: keep the row readable.
+		return theme.fg("dim", text);
+	}
+}
 
 function newRunStats(): RunStats {
 	return {
@@ -140,7 +171,14 @@ function normalizeConfig(input: unknown, fallback = DEFAULT_CONFIG): CompactTran
 	const highlightToolActions = typeof source.highlightToolActions === "boolean"
 		? source.highlightToolActions
 		: fallback.highlightToolActions;
-	return { enabled, summaryStyle, highlightToolActions };
+	// A theme token name or a color literal (#hex / oklch() / okhsl() / palette
+	// index). Anything else keeps the previous value so a typo cannot blank out
+	// the row.
+	const highlightActionColor =
+		typeof source.highlightActionColor === "string" && isColorSpec(source.highlightActionColor.trim())
+			? source.highlightActionColor.trim()
+			: fallback.highlightActionColor;
+	return { enabled, summaryStyle, highlightToolActions, highlightActionColor };
 }
 
 function readConfigFile(path: string, fallback: CompactTranscriptConfig): CompactTranscriptConfig | undefined {
@@ -720,7 +758,7 @@ function compactToolLine(
 	return (
 		marker +
 		theme.fg(color, plainLine.slice(0, actionStart)) +
-		theme.fg(HIGHLIGHT_ACTION_COLOR, plainLine.slice(actionStart, actionEnd)) +
+		paintAction(theme, plainLine.slice(actionStart, actionEnd)) +
 		theme.fg(color, plainLine.slice(actionEnd, beforeStatsEnd)) +
 		(statsIndex >= 0 ? colorDiffStats(theme, stats) : "") +
 		theme.fg(color, statsIndex >= 0 ? plainLine.slice(statsIndex + statsMarker.length) : "")

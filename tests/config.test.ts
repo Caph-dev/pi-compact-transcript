@@ -146,3 +146,28 @@ test("toggling re-renders rows already on screen", async () => {
 		await h.emit("session_shutdown");
 	}
 });
+
+test("highlightActionColor accepts a theme token or a literal and ignores garbage", async () => {
+	const highlight = async (value: unknown) => {
+		writeConfigs({ user: { highlightToolActions: true, highlightActionColor: value } });
+		const h = harness({ theme: tagTheme, trusted: true, cwd: projectDir });
+		await h.startSession();
+		await h.emit("agent_start");
+		const tool = await h.start("probe", "read", { path: "a.ts" });
+		await h.finish("probe");
+		// row() strips escape sequences, so keep the raw render for literal colors.
+		const line = row(tool);
+		const raw = tool.render(1000).join("\n");
+		await h.emit("session_shutdown");
+		return { line, raw };
+	};
+
+	assert.match((await highlight("accent")).line, /<accent>read<\/accent>/, "a theme token is used as-is");
+	assert.match((await highlight("#7f8aa8")).raw, /\x1b\[38;[\d;]+mread/, "a hex literal becomes an ANSI color");
+	assert.match(
+		(await highlight("not a color!")).line,
+		/<toolDiffContext>read<\/toolDiffContext>/,
+		"an unsupported value falls back to the default",
+	);
+	writeConfigs({});
+});

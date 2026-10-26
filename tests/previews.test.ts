@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { homedir } from "node:os";
 import test from "node:test";
-import { harness, row, stripTags, tagTheme } from "./helpers.ts";
+import { harness, row, stripTags, tagTheme, WIDE } from "./helpers.ts";
 
 test("each built-in tool gets a recognizable one-line preview", async () => {
 	const h = harness();
@@ -212,5 +212,47 @@ test("highlightToolActions recolors the tool name or shell command", async () =>
 	} finally {
 		h.setBranch([]);
 		await h.emit("session_shutdown");
+	}
+});
+
+test("highlightActionColor overrides the highlight with a theme token or a literal", async () => {
+	const tokenHarness = harness({ theme: tagTheme });
+	tokenHarness.setBranch([
+		{
+			type: "custom",
+			customType: "compact-transcript-config",
+			data: { highlightToolActions: true, highlightActionColor: "accent" },
+		},
+	]);
+	await tokenHarness.startSession();
+	await tokenHarness.emit("agent_start");
+	try {
+		const read = await tokenHarness.start("read", "read", { path: "a.ts" });
+		await tokenHarness.finish("read");
+		assert.match(row(read), /<accent>read<\/accent>/);
+	} finally {
+		tokenHarness.setBranch([]);
+		await tokenHarness.emit("session_shutdown");
+	}
+
+	const literalHarness = harness({ theme: tagTheme });
+	literalHarness.setBranch([
+		{
+			type: "custom",
+			customType: "compact-transcript-config",
+			data: { highlightToolActions: true, highlightActionColor: "#7f8aa8" },
+		},
+	]);
+	await literalHarness.startSession();
+	await literalHarness.emit("agent_start");
+	try {
+		const read = await literalHarness.start("read", "read", { path: "a.ts" });
+		await literalHarness.finish("read");
+		// A literal is emitted as an ANSI color, since the theme has no token for it.
+		// row() strips escape sequences, so assert against the raw render.
+		assert.match(read.render(WIDE).join("\n"), /\x1b\[38;[\d;]+mread/);
+	} finally {
+		literalHarness.setBranch([]);
+		await literalHarness.emit("session_shutdown");
 	}
 });
