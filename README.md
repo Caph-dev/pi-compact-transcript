@@ -22,7 +22,7 @@ What it does:
 
 - Highlights agent commentary with an accent-colored left rail and a blank line before the tools below it, preserving Markdown formatting. Final answers stay unframed.
 - Collapses every tool call/result into a dimmed one-line preview with a status diamond: blinking gray `◆` while running, green on success, red on failure. Failed previews retain higher-contrast text. Durations show at a second or longer.
-- Consecutive uses of the same tool coalesce into a single row, e.g. `◆ 4× read src/foo.ts {12 lines · 8s}`. Edit and write previews show git-style counts such as `{+3/-1}` and `{+42/-0}`. The brackets and counts use the row accent; only the `+` and `-` signs keep the diff green and red, so a row never shows more than one emphasis tone. No diff content is rendered. Failed tools always get their own visible row.
+- Consecutive uses of the same tool coalesce into a single row, e.g. `◆ 4× read src/foo.ts {12 lines · 8s}`. Edit and write previews show git-style counts such as `{+3/-1}` and `{+42/-0}`. The brackets, signs and counts all use the row accent, so a row never shows more than one emphasis tone; the `+` and `-` glyphs still carry the direction. No diff content is rendered. Failed tools always get their own visible row.
 - Each agent run ends with a one-line summary, e.g. `Read 6 files, edited 2, ran 3 commands, 1 failed · 42s`.
 - Suppresses `Thinking...` markers when thinking is hidden.
 - Works with custom/external tools from other extensions; unknown tools preview their most meaningful string argument (command, code, query, path, url, ...) instead of raw JSON.
@@ -86,7 +86,7 @@ Example:
 | Option | Values | Default | Description |
 | --- | --- | --- | --- |
 | `summaryStyle` | `"plain"`, `"quote"`, `"off"` | `"plain"` | Renders activity summaries as muted text or Markdown blockquotes, or hides them. |
-| `highlightToolActions` | `true`, `false` | `false` | Recolors tool names and shell commands so they stand out from the rest of the row. No bold: the row keeps a single type weight. |
+| `highlightToolActions` | `true`, `false` | `false` | Recolors tool names and shell commands so they stand out from the rest of the row. Edit and write line counts follow the same color, so the row keeps one emphasis tone. No bold: the row keeps a single type weight. |
 | `highlightActionColor` | theme token name, `#hex`, `oklch(...)`, `okhsl(...)`, palette index | `"toolDiffContext"` | Color used by `highlightToolActions`. Token names follow the active theme; literals are emitted as ANSI colors and stay fixed when the theme changes. Unsupported values keep the default. |
 
 Configuration is resolved in this order (highest priority first): current-session `/compact-transcript on|off`, trusted project configuration, user-wide configuration, then the built-in defaults (`enabled: true`, `summaryStyle: "plain"`, `highlightToolActions: false`, `highlightActionColor: "toolDiffContext"`). Project configuration is ignored unless Pi reports the project as trusted. Missing files, invalid JSON, and unsupported values are ignored and the next fallback is used. Session toggles remain stored in the existing session entries, and legacy mode values remain supported.

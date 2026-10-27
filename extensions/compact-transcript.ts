@@ -134,8 +134,8 @@ function describeHighlightColor(): string {
 }
 
 /**
- * Paints the row's accent - the tool action and the stats brackets around it -
- * with `highlightActionColor`, so one row never shows two different tones.
+ * Paints the row's accent - the tool action and the diff stats cluster beside
+ * it - with `highlightActionColor`, so one row never shows two different tones.
  */
 function paintAccent(theme: Theme, text: string): string {
 	const spec = state.config.highlightActionColor;
@@ -396,19 +396,9 @@ function formatDiffStats(stats: DiffStats | undefined): string {
 }
 
 function colorDiffStats(theme: Theme, stats: string): string {
-	const match = /^\+(\d+)\/(?:-)(\d+)$/.exec(stats);
-	if (!match) return paintAccent(theme, `{${stats}}`);
-	// Brackets and counts share the row accent; only the + and - signs keep the
-	// diff colors, so the row stays one tone with direction still visible.
-	return (
-		paintAccent(theme, "{") +
-		theme.fg("toolDiffAdded", "+") +
-		paintAccent(theme, match[1]) +
-		paintAccent(theme, "/") +
-		theme.fg("toolDiffRemoved", "-") +
-		paintAccent(theme, match[2]) +
-		paintAccent(theme, "}")
-	);
+	// The whole cluster - brackets, signs and counts - uses the row accent, so a
+	// row carries exactly one emphasis tone; the + and - glyphs keep direction.
+	return paintAccent(theme, `{${stats}}`);
 }
 
 function isEditTool(name: string): boolean {
